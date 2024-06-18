@@ -3,6 +3,10 @@ module go-micro.dev/v5
 go 1.18
 
 require (
+	github.com/mitchellh/hashstructure v1.1.0
+	go.etcd.io/etcd/api/v3 v3.5.2
+	go.etcd.io/etcd/client/v3 v3.5.2
+	go.uber.org/zap v1.23.0
 	github.com/bitly/go-simplejson v0.5.0
 	github.com/ef-ds/deque v1.0.4
 	github.com/evanphx/json-patch/v5 v5.5.0
@@ -71,6 +75,7 @@ require (
 	github.com/sirupsen/logrus v1.9.0 // indirect
 	github.com/xanzy/ssh-agent v0.3.0 // indirect
 	github.com/xrash/smetrics v0.0.0-20201216005158-039620a65673 // indirect
+	go-micro.dev/v4 v4.9.0 // indirect
 	go.opencensus.io v0.24.0 // indirect
 	golang.org/x/mod v0.9.0 // indirect
 	golang.org/x/sys v0.18.0 // indirect

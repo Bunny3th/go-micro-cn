@@ -8,41 +8,39 @@ import (
 	"go-micro.dev/v5/logger"
 )
 
+//连接(etcd、zookeeper等)选项
 type Options struct {
-	Logger logger.Logger
-	// Other options for implementations of the interface
-	// can be stored in a context
-	Context   context.Context
-	TLSConfig *tls.Config
-	Addrs     []string
-	Timeout   time.Duration
-	Secure    bool
+	Logger    logger.Logger   //日志记录器
+	Context   context.Context //上下文,可以用context.WithValue存储其他选项
+	TLSConfig *tls.Config     //TLS配置
+	Addrs     []string        //地址
+	Timeout   time.Duration   //连接(etcd、zookeeper等)超时时间
+	Secure    bool            //连接是否需要安全传输
 }
 
+//服务注册配置
 type RegisterOptions struct {
-	// Other options for implementations of the interface
-	// can be stored in a context
-	Context context.Context
-	TTL     time.Duration
+	Context context.Context //上下文,可以用context.WithValue存储其他选项
+	TTL     time.Duration   //注册项生存周期
 }
 
+//监视器选项
 type WatchOptions struct {
-	// Other options for implementations of the interface
-	// can be stored in a context
-	Context context.Context
-	// Specify a service to watch
-	// If blank, the watch is for all services
-	Service string
+	Context context.Context //上下文,可以用context.WithValue存储其他选项
+	Service string //指定要监视的服务,如果为空，则适用于所有服务
 }
 
+//服务注销选项
 type DeregisterOptions struct {
 	Context context.Context
 }
 
+//服务发现选项
 type GetOptions struct {
 	Context context.Context
 }
 
+//服务列出选项
 type ListOptions struct {
 	Context context.Context
 }
