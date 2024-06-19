@@ -8,8 +8,8 @@ import (
 )
 
 type Options struct {
-	Registry registry.Registry
-	Strategy Strategy
+	Registry registry.Registry //服务注册器
+	Strategy Strategy          //选择策略
 
 	// Other options for implementations of the interface
 	// can be stored in a context
@@ -18,14 +18,15 @@ type Options struct {
 	Logger logger.Logger
 }
 
+//选择器选项
 type SelectOptions struct {
 
 	// Other options for implementations of the interface
 	// can be stored in a context
 	Context  context.Context
-	Strategy Strategy
+	Strategy Strategy //选择策略
 
-	Filters []Filter
+	Filters []Filter //筛选器
 }
 
 type Option func(*Options)
@@ -34,6 +35,7 @@ type Option func(*Options)
 type SelectOption func(*SelectOptions)
 
 // Registry sets the registry used by the selector.
+//设置注册器
 func Registry(r registry.Registry) Option {
 	return func(o *Options) {
 		o.Registry = r
@@ -41,6 +43,7 @@ func Registry(r registry.Registry) Option {
 }
 
 // SetStrategy sets the default strategy for the selector.
+//设置选择策略
 func SetStrategy(fn Strategy) Option {
 	return func(o *Options) {
 		o.Strategy = fn
@@ -49,6 +52,7 @@ func SetStrategy(fn Strategy) Option {
 
 // WithFilter adds a filter function to the list of filters
 // used during the Select call.
+//设置过滤器
 func WithFilter(fn ...Filter) SelectOption {
 	return func(o *SelectOptions) {
 		o.Filters = append(o.Filters, fn...)
@@ -56,6 +60,7 @@ func WithFilter(fn ...Filter) SelectOption {
 }
 
 // Strategy sets the selector strategy.
+//设置选择器使用的策略
 func WithStrategy(fn Strategy) SelectOption {
 	return func(o *SelectOptions) {
 		o.Strategy = fn
