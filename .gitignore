@@ -39,3 +39,5 @@ _cgo_export.*
 # go work files
 go.work
 go.work.sum
+
+.test/

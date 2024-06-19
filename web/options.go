@@ -31,7 +31,7 @@ type Options struct {
 
 	Server *http.Server
 
-	// RegisterCheck runs a check function before registering the service
+	// 在注册服务之前运行检查函数
 	RegisterCheck func(context.Context) error
 
 	Version string
@@ -60,7 +60,11 @@ type Options struct {
 	Signal bool
 }
 
+//使用option模式:
+//1、对Options赋默认值
+//2、应用传入的opts方法,更改Options中字段
 func newOptions(opts ...Option) Options {
+	//1、赋默认值
 	opt := Options{
 		Name:             DefaultName,
 		Version:          DefaultVersion,
@@ -75,10 +79,12 @@ func newOptions(opts ...Option) Options {
 		Logger:           logger.DefaultLogger,
 	}
 
+	//2、应用传入的opts方法,更改Options中字段
 	for _, o := range opts {
 		o(&opt)
 	}
 
+	//3、如果没有传入注册检查函数,则使用默认检查函数  func(context.Context) error { return nil }
 	if opt.RegisterCheck == nil {
 		opt.RegisterCheck = DefaultRegisterCheck
 	}
@@ -86,14 +92,14 @@ func newOptions(opts ...Option) Options {
 	return opt
 }
 
-// Name of Web.
+// 设置web service 名称
 func Name(n string) Option {
 	return func(o *Options) {
 		o.Name = n
 	}
 }
 
-// Icon specifies an icon url to load in the UI.
+// 设置要在UI中加载的ico图标url
 func Icon(ico string) Option {
 	return func(o *Options) {
 		if o.Metadata == nil {
@@ -104,157 +110,157 @@ func Icon(ico string) Option {
 	}
 }
 
-// Id for Unique server id.
+// 设置唯一服务器Id
 func Id(id string) Option {
 	return func(o *Options) {
 		o.Id = id
 	}
 }
 
-// Version of the service.
+// 设置服务版本
 func Version(v string) Option {
 	return func(o *Options) {
 		o.Version = v
 	}
 }
 
-// Metadata associated with the service.
+// 设置与服务关联的元数据
 func Metadata(md map[string]string) Option {
 	return func(o *Options) {
 		o.Metadata = md
 	}
 }
 
-// Address to bind to - host:port.
+// 要绑定的地址(主机:端口)
 func Address(a string) Option {
 	return func(o *Options) {
 		o.Address = a
 	}
 }
 
-// Advertise The address to advertise for discovery - host:port.
+// 要为服务发现而播发的地址(主机:端口) [mdns用]
 func Advertise(a string) Option {
 	return func(o *Options) {
 		o.Advertise = a
 	}
 }
 
-// Context specifies a context for the service.
-// Can be used to signal shutdown of the service.
-// Can be used for extra option values.
+//指定服务的上下文。
+//1、可用于发出服务关闭的信号
+//2、可用于额外的选项值
 func Context(ctx context.Context) Option {
 	return func(o *Options) {
 		o.Context = ctx
 	}
 }
 
-// Registry used for discovery.
+// 用于服务发现的注册器
 func Registry(r registry.Registry) Option {
 	return func(o *Options) {
 		o.Registry = r
 	}
 }
 
-// RegisterTTL Register the service with a TTL.
+// 注册服务时使用的TTL.
 func RegisterTTL(t time.Duration) Option {
 	return func(o *Options) {
 		o.RegisterTTL = t
 	}
 }
 
-// RegisterInterval Register the service with at interval.
+// 循环注册服务的间隔时间
 func RegisterInterval(t time.Duration) Option {
 	return func(o *Options) {
 		o.RegisterInterval = t
 	}
 }
 
-// Handler for custom handler.
+// 自定义web处理Handler(如gin)
 func Handler(h http.Handler) Option {
 	return func(o *Options) {
 		o.Handler = h
 	}
 }
 
-// Server for custom Server.
+// 自定义http.Server
 func Server(srv *http.Server) Option {
 	return func(o *Options) {
 		o.Server = srv
 	}
 }
 
-// MicroService sets the micro.Service used internally.
+// 设置内部使用的micro服务
 func MicroService(s micro.Service) Option {
 	return func(o *Options) {
 		o.Service = s
 	}
 }
 
-// Flags sets the command flags.
+// 设置命令行flags
 func Flags(flags ...cli.Flag) Option {
 	return func(o *Options) {
 		o.Flags = append(o.Flags, flags...)
 	}
 }
 
-// Action sets the command action.
+// 设置命令行操作
 func Action(a func(*cli.Context)) Option {
 	return func(o *Options) {
 		o.Action = a
 	}
 }
 
-// BeforeStart is executed before the server starts.
+// 设置在服务启动之前执行的func
 func BeforeStart(fn func() error) Option {
 	return func(o *Options) {
 		o.BeforeStart = append(o.BeforeStart, fn)
 	}
 }
 
-// BeforeStop is executed before the server stops.
+// 设置在服务器停止之前执行的func
 func BeforeStop(fn func() error) Option {
 	return func(o *Options) {
 		o.BeforeStop = append(o.BeforeStop, fn)
 	}
 }
 
-// AfterStart is executed after server start.
+// 设置在服务启动之后执行的func
 func AfterStart(fn func() error) Option {
 	return func(o *Options) {
 		o.AfterStart = append(o.AfterStart, fn)
 	}
 }
 
-// AfterStop is executed after server stop.
+// 设置在服务停止之后执行的func
 func AfterStop(fn func() error) Option {
 	return func(o *Options) {
 		o.AfterStop = append(o.AfterStop, fn)
 	}
 }
 
-// Secure Use secure communication.
-// If TLSConfig is not specified we use InsecureSkipVerify and generate a self signed cert.
+//是否使用安全通信。
+//如果未指定TLSConfig，将使用InsecureSkipVerify并生成自签名证书
 func Secure(b bool) Option {
 	return func(o *Options) {
 		o.Secure = b
 	}
 }
 
-// TLSConfig to be used for the transport.
+// TLS设置
 func TLSConfig(t *tls.Config) Option {
 	return func(o *Options) {
 		o.TLSConfig = t
 	}
 }
 
-// StaticDir sets the static file directory. This defaults to ./html.
+// 设置静态文件目录,默认为"/html"
 func StaticDir(d string) Option {
 	return func(o *Options) {
 		o.StaticDir = d
 	}
 }
 
-// RegisterCheck run func before registry service.
+// 设置在注册服务之前运行的func
 func RegisterCheck(fn func(context.Context) error) Option {
 	return func(o *Options) {
 		o.RegisterCheck = fn

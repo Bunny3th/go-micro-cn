@@ -25,16 +25,16 @@ import (
 )
 
 type service struct {
-	mux *http.ServeMux
-	srv *registry.Service
+	mux *http.ServeMux    //ServeMux是一个HTTP请求多路复用器。它将每个传入请求的URL与注册的模式列表进行匹配，并调用与URL最匹配的模式的处理程序
+	srv *registry.Service //需要注册的服务
 
-	exit chan chan error
-	ex   chan bool
+	exit chan chan error //接收web服务停止信息
+	ex   chan bool       //接收服务注册停止信息
 	opts Options
 
-	sync.RWMutex
-	running bool
-	static  bool
+	sync.RWMutex //读写锁
+	running      bool
+	static       bool //是否开启静态文件访问handle
 }
 
 func newService(opts ...Option) Service {
@@ -50,6 +50,14 @@ func newService(opts ...Option) Service {
 	return s
 }
 
+//生成需注册的服务信息,服务注册信息是在调用NewService方法时传入的，示例代码:
+//  service := web.NewService(
+//      web.Name("s1"),                //服务名
+//      web.Version("1"),              //服务版本
+//      web.Address("127.0.0.1:8080"), //服务地址
+//      web.Registry(etcdReg),         //服务注册器
+//      web.Handler(NewRouter()),
+//)
 func (s *service) genSrv() *registry.Service {
 	var (
 		host string
@@ -59,7 +67,7 @@ func (s *service) genSrv() *registry.Service {
 
 	logger := s.opts.Logger
 
-	// default host:port
+	//如果Options中的Address有值,则尝试获取Address中的地址和端口作为服务节点地址
 	if len(s.opts.Address) > 0 {
 		host, port, err = net.SplitHostPort(s.opts.Address)
 		if err != nil {
@@ -70,6 +78,7 @@ func (s *service) genSrv() *registry.Service {
 	// check the advertise address first
 	// if it exists then use it, otherwise
 	// use the address
+	//如果mdns广播地址有值,则使用广播地址作为服务节点地址
 	if len(s.opts.Advertise) > 0 {
 		host, port, err = net.SplitHostPort(s.opts.Advertise)
 		if err != nil {
@@ -77,6 +86,7 @@ func (s *service) genSrv() *registry.Service {
 		}
 	}
 
+	//Extract返回一个有效的IP地址。如果提供的地址是有效地址，则会直接返回。否则，迭代可用接口以找到IP地址，优选私有地址
 	addr, err := maddr.Extract(host)
 	if err != nil {
 		logger.Log(log.FatalLevel, err)
@@ -97,6 +107,7 @@ func (s *service) genSrv() *registry.Service {
 	}
 }
 
+//循环注册服务（默认每隔30秒）,直到收到退出信息
 func (s *service) run() {
 	s.RLock()
 	if s.opts.RegisterInterval <= time.Duration(0) {
@@ -118,6 +129,7 @@ func (s *service) run() {
 	}
 }
 
+//服务注册
 func (s *service) register() error {
 	s.Lock()
 	defer s.Unlock()
@@ -128,19 +140,19 @@ func (s *service) register() error {
 
 	logger := s.opts.Logger
 
-	// default to service registry
+	//默认使用micro.Service下的注册器
 	r := s.opts.Service.Client().Options().Registry
-	// switch to option if specified
+	//如果用户指定注册器,则使用自定义的
 	if s.opts.Registry != nil {
 		r = s.opts.Registry
 	}
 
-	// service node need modify, node address maybe changed
+	//服务信息重新生成，因为节点地址可能更改
 	srv := s.genSrv()
 	srv.Endpoints = s.srv.Endpoints
 	s.srv = srv
 
-	// use RegisterCheck func before register
+	// 在注册之前使用RegisterCheck函数
 	if err := s.opts.RegisterCheck(s.opts.Context); err != nil {
 		logger.Logf(log.ErrorLevel, "Server %s-%s register check error: %s", s.opts.Name, s.opts.Id, err)
 		return err
@@ -148,7 +160,7 @@ func (s *service) register() error {
 
 	var regErr error
 
-	// try three times if necessary
+	//尝试做3次服务注册,其中任意一次成功即返回
 	for i := 0; i < 3; i++ {
 		// attempt to register
 		if err := r.Register(s.srv, registry.RegisterTTL(s.opts.RegisterTTL)); err != nil {
@@ -168,6 +180,7 @@ func (s *service) register() error {
 	return regErr
 }
 
+//撤销已注册服务
 func (s *service) deregister() error {
 	s.Lock()
 	defer s.Unlock()
@@ -175,30 +188,40 @@ func (s *service) deregister() error {
 	if s.srv == nil {
 		return nil
 	}
-	// default to service registry
+
+	//默认使用micro.Service下的注册器
 	r := s.opts.Service.Client().Options().Registry
-	// switch to option if specified
+	//如果用户指定注册器,则使用自定义的
 	if s.opts.Registry != nil {
 		r = s.opts.Registry
 	}
 
+	//撤销注册
 	return r.Deregister(s.srv)
 }
 
+//1、执行BeforeStart方法
+//2、生成需注册的服务信息
+//3、如果用户没有自定义Handler,且service.statics为true则设置一个路由地址为"/"的文件夹访问handler
+//4、开启服务监听
+//5、开启exit 管道,开始监听服务关闭事件;将running状态设为true
 func (s *service) start() error {
 	s.Lock()
 	defer s.Unlock()
 
+	//如果已经在runing状态,则返回
 	if s.running {
 		return nil
 	}
 
+	//1、执行BeforeStart方法
 	for _, fn := range s.opts.BeforeStart {
 		if err := fn(); err != nil {
 			return err
 		}
 	}
 
+	//生成listener
 	listener, err := s.listen("tcp", s.opts.Address)
 	if err != nil {
 		return err
@@ -206,6 +229,7 @@ func (s *service) start() error {
 
 	logger := s.opts.Logger
 
+	//2、生成需注册的服务信息
 	s.opts.Address = listener.Addr().String()
 	srv := s.genSrv()
 	srv.Endpoints = s.srv.Endpoints
@@ -213,13 +237,14 @@ func (s *service) start() error {
 
 	var handler http.Handler
 
-	if s.opts.Handler != nil {
+	//3、如果用户没有自定义Handler,则设置一个路由地址为"/"的文件夹访问handler
+	if s.opts.Handler != nil { //如果用户自定义了Handler(比如gin),则使用自定义Handler
 		handler = s.opts.Handler
-	} else {
+	} else { //否则使用http.ServeMux
 		handler = s.mux
 		var r sync.Once
 
-		// register the html dir
+		// 设置一个路由地址为"/"的文件夹访问handler
 		r.Do(func() {
 			// static dir
 			static := s.opts.StaticDir
@@ -240,14 +265,15 @@ func (s *service) start() error {
 	}
 
 	var httpSrv *http.Server
-	if s.opts.Server != nil {
+	if s.opts.Server != nil { //如果用户定义了http.Server,则使用自定义的
 		httpSrv = s.opts.Server
-	} else {
+	} else { //否则默认使用*http.Server
 		httpSrv = &http.Server{}
 	}
 
 	httpSrv.Handler = handler
 
+	//4、开启服务监听
 	go httpSrv.Serve(listener)
 
 	for _, fn := range s.opts.AfterStart {
@@ -256,6 +282,7 @@ func (s *service) start() error {
 		}
 	}
 
+	//5、开启exit 管道,开始监听服务关闭事件;将running状态设为true
 	s.exit = make(chan chan error, 1)
 	s.running = true
 
@@ -269,6 +296,10 @@ func (s *service) start() error {
 	return nil
 }
 
+//执行以下步骤
+//1、依次执行BeforeStop方法组(方法定义func() error)
+//2、service.exit通道中写入error[与start方法中监听通道呼应],关闭web服务监听;将running状态设为false
+//3、依次执行AfterStop方法组(方法定义func() error)
 func (s *service) stop() error {
 	s.Lock()
 	defer s.Unlock()
@@ -277,18 +308,21 @@ func (s *service) stop() error {
 		return nil
 	}
 
+	//1、依次执行BeforeStop方法组
 	for _, fn := range s.opts.BeforeStop {
 		if err := fn(); err != nil {
 			return err
 		}
 	}
 
+	//2、service.exit通道中写入error[与start方法中监听通道呼应],关闭web服务监听;将running状态设为false
 	ch := make(chan error, 1)
 	s.exit <- ch
 	s.running = false
 
 	s.opts.Logger.Log(log.InfoLevel, "Stopping")
 
+	//3、依次执行AfterStop方法组
 	for _, fn := range s.opts.AfterStop {
 		if err := fn(); err != nil {
 			if chErr := <-ch; chErr != nil {
@@ -311,6 +345,8 @@ func (s *service) Client() *http.Client {
 	}
 }
 
+//1、往Endpoints中注册http.Handler
+//2、往service.mux(*http.ServeMux)中注册http.Handler
 func (s *service) Handle(pattern string, handler http.Handler) {
 	var seen bool
 	s.RLock()
@@ -342,6 +378,8 @@ func (s *service) Handle(pattern string, handler http.Handler) {
 	s.mux.Handle(pattern, handler)
 }
 
+//1、往Endpoints中注册func(http.ResponseWriter, *http.Request)
+//2、往service.mux(*http.ServeMux)中注册func(http.ResponseWriter, *http.Request)
 func (s *service) HandleFunc(pattern string, handler func(http.ResponseWriter, *http.Request)) {
 	var seen bool
 
@@ -372,6 +410,7 @@ func (s *service) HandleFunc(pattern string, handler func(http.ResponseWriter, *
 	s.mux.HandleFunc(pattern, handler)
 }
 
+//初始化选项 --注意,这个方法一般不用
 func (s *service) Init(opts ...Option) error {
 	s.Lock()
 
@@ -451,6 +490,11 @@ func (s *service) Init(opts ...Option) error {
 	return nil
 }
 
+
+//执行以下步骤:
+//1、执行私有方法start
+//2、执行私有方法register
+//3、执行私有方法run
 func (s *service) Start() error {
 	if err := s.start(); err != nil {
 		return err
@@ -466,6 +510,10 @@ func (s *service) Start() error {
 	return nil
 }
 
+//执行以下步骤
+//1、关闭service中ex通道(停止服务循环注册)
+//2、撤销已注册服务
+//3、执行私有的stop方法
 func (s *service) Stop() error {
 	// exit reg loop
 	close(s.ex)
@@ -477,13 +525,21 @@ func (s *service) Stop() error {
 	return s.stop()
 }
 
+//*重要方法.执行以下步骤:
+//1、调用私有start方法
+//2、如果配置中Profile对象不为空,开启profiler(性能分析)
+//3、服务注册
+//4、开启后台循环服务注册(默认每30秒)
+//5、监听系统停止信号,收到后注销服务,发送服务注册停止信号、执行私有deregister、stop方法
 func (s *service) Run() error {
+	//1、调用私有start方法
 	if err := s.start(); err != nil {
 		return err
 	}
 
 	logger := s.opts.Logger
 	// start the profiler
+	//2、如果配置中Profile对象不为空,开启profiler(性能分析)
 	if s.opts.Service.Options().Profile != nil {
 		// to view mutex contention
 		runtime.SetMutexProfileFraction(5)
@@ -501,13 +557,16 @@ func (s *service) Run() error {
 		}()
 	}
 
+	//3、服务注册
 	if err := s.register(); err != nil {
 		return err
 	}
 
 	// start reg loop
+	//4、开启后台循环服务注册(默认每30秒)
 	go s.run()
 
+	//5、监听系统停止信号,收到后注销服务,发送服务注册停止信号、执行私有deregister、stop方法
 	ch := make(chan os.Signal, 1)
 	if s.opts.Signal {
 		signal.Notify(ch, signalutil.Shutdown()...)
@@ -523,20 +582,24 @@ func (s *service) Run() error {
 	}
 
 	// exit reg loop
+	//发送服务注册停止信号
 	close(s.ex)
 
+	//注销服务
 	if err := s.deregister(); err != nil {
 		return err
 	}
 
+	//关闭
 	return s.stop()
 }
 
-// Options returns the options for the given service.
+// 返回服务的Option
 func (s *service) Options() Options {
 	return s.opts
 }
 
+//返回网络侦听器
 func (s *service) listen(network, addr string) (net.Listener, error) {
 	var (
 		listener net.Listener
@@ -544,6 +607,7 @@ func (s *service) listen(network, addr string) (net.Listener, error) {
 	)
 
 	// TODO: support use of listen options
+	//如果选项中Secure=true && 用户传入TLSConfig,则创建一个TLS侦听器
 	if s.opts.Secure || s.opts.TLSConfig != nil {
 		config := s.opts.TLSConfig
 
@@ -572,7 +636,7 @@ func (s *service) listen(network, addr string) (net.Listener, error) {
 		}
 
 		listener, err = mnet.Listen(addr, fn)
-	} else {
+	} else { //否则使用net.Listener
 		fn := func(addr string) (net.Listener, error) {
 			return net.Listen(network, addr)
 		}

@@ -3,10 +3,6 @@ module go-micro.dev/v5
 go 1.18
 
 require (
-	github.com/mitchellh/hashstructure v1.1.0
-	go.etcd.io/etcd/api/v3 v3.5.2
-	go.etcd.io/etcd/client/v3 v3.5.2
-	go.uber.org/zap v1.23.0
 	github.com/bitly/go-simplejson v0.5.0
 	github.com/ef-ds/deque v1.0.4
 	github.com/evanphx/json-patch/v5 v5.5.0
@@ -22,12 +18,16 @@ require (
 	github.com/gorilla/handlers v1.5.1
 	github.com/imdario/mergo v0.3.12
 	github.com/miekg/dns v1.1.43
+	github.com/mitchellh/hashstructure v1.1.0
 	github.com/nxadm/tail v1.4.8
 	github.com/oxtoacart/bpool v0.0.0-20190530202638-03653db5a59c
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/pkg/errors v0.9.1
 	github.com/stretchr/testify v1.8.1
 	github.com/urfave/cli/v2 v2.25.7
+	go.etcd.io/etcd/api/v3 v3.5.2
+	go.etcd.io/etcd/client/v3 v3.5.2
+	go.uber.org/zap v1.23.0
 	golang.org/x/crypto v0.21.0
 	golang.org/x/net v0.23.0
 	golang.org/x/sync v0.1.0
@@ -47,6 +47,8 @@ require (
 	github.com/acomagu/bufpipe v1.0.3 // indirect
 	github.com/containerd/cgroups v1.1.0 // indirect
 	github.com/containerd/containerd v1.6.19 // indirect
+	github.com/coreos/go-semver v0.3.0 // indirect
+	github.com/coreos/go-systemd/v22 v22.3.2 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.2 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/docker/docker v20.10.24+incompatible // indirect
@@ -76,7 +78,10 @@ require (
 	github.com/xanzy/ssh-agent v0.3.0 // indirect
 	github.com/xrash/smetrics v0.0.0-20201216005158-039620a65673 // indirect
 	go-micro.dev/v4 v4.9.0 // indirect
+	go.etcd.io/etcd/client/pkg/v3 v3.5.2 // indirect
 	go.opencensus.io v0.24.0 // indirect
+	go.uber.org/atomic v1.7.0 // indirect
+	go.uber.org/multierr v1.6.0 // indirect
 	golang.org/x/mod v0.9.0 // indirect
 	golang.org/x/sys v0.18.0 // indirect
 	golang.org/x/text v0.14.0 // indirect

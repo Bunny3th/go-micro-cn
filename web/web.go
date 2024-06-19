@@ -1,4 +1,4 @@
-// Package web provides web based micro services
+// Package web提供基于web的微服务
 package web
 
 import (
@@ -9,7 +9,7 @@ import (
 	"github.com/google/uuid"
 )
 
-// Service is a web service with service discovery built in.
+//内置服务发现的web服务接口
 type Service interface {
 	Client() *http.Client
 	Init(opts ...Option) error
@@ -22,9 +22,10 @@ type Service interface {
 }
 
 // Option for web.
+//又是熟悉的Option模式
 type Option func(o *Options)
 
-// Web basic Defaults.
+// 定义默认值
 var (
 	// For serving.
 	DefaultName    = "go-web"
@@ -41,7 +42,7 @@ var (
 	DefaultRegisterCheck = func(context.Context) error { return nil }
 )
 
-// NewService returns a new web.Service.
+// NewService返回一个默认web服务
 func NewService(opts ...Option) Service {
 	return newService(opts...)
 }

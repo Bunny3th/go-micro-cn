@@ -272,10 +272,10 @@ func (e *etcdRegistry) registerNode(s *registry.Service, node *registry.Node, op
 	if leaseID > 0 {
 		//续租
 		//这里一个疑惑点是，为什么不用KeepAlive而用KeepAliveOnce?
-		//1、查看KeepAliveOnce源码,此方法循环执行私有keepAliveOnce方法，通过将保活请求从客户端流式传输到服务器，
-		//并将保活响应从服务器流式传输给客户端，来保持租约的有效性
+		//1、查看KeepAliveOnce源码,此方法在重新延长一次lease ttl(延长时间=lease.TTL)
 		//2、结合项目中web包看，在调用WebService的Run()方法时,会循环执行(默认30秒一次)调用register方法
-		//所以，这里没有用KeepAlive
+		//todo 所以这里有一个坑:假如循环注册的间隔时间>ttl，则会导致服务有概率不能被发现
+		//todo so，为什么不用KeepAlive?
 		log.Logf(logger.TraceLevel, "Renewing existing lease for %s %d", s.Name, leaseID)
 		if _, err := e.client.KeepAliveOnce(context.TODO(), leaseID); err != nil {
 			if err != rpctypes.ErrLeaseNotFound {
