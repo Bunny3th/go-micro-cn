@@ -70,6 +70,8 @@ func (c *registrySelector) Select(service string, opts ...SelectOption) (Next, e
 	// get the service
 	// try the cache first
 	// if that fails go directly to the registry
+	//todo 存疑,英文注释说从cache读，但看下来是直接调用了 registry.GetService方法
+	//注意:这里调用的是cache的GetService()方法,而不是registry接口的GetService()方法
 	services, err := c.rc.GetService(service)
 	if err != nil {
 		if errors.Is(err, registry.ErrNotFound) {
@@ -79,12 +81,12 @@ func (c *registrySelector) Select(service string, opts ...SelectOption) (Next, e
 		return nil, err
 	}
 
-	// apply the filters
+	// 使用筛选器过滤
 	for _, filter := range sopts.Filters {
 		services = filter(services)
 	}
 
-	// if there's nothing left, return
+	// 如果没有返回结果,直接报错
 	if len(services) == 0 {
 		return nil, ErrNoneAvailable
 	}

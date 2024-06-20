@@ -4,8 +4,7 @@ import (
 	"go-micro.dev/v5/registry"
 )
 
-// FilterEndpoint is an endpoint based Select Filter which will
-// only return services with the endpoint specified.
+//基于端点的选择筛选器，返回指定端点名的服务(比较registry.Service.Endpoint.Name)
 func FilterEndpoint(name string) Filter {
 	return func(old []*registry.Service) []*registry.Service {
 		var services []*registry.Service
@@ -23,8 +22,7 @@ func FilterEndpoint(name string) Filter {
 	}
 }
 
-// FilterLabel is a label based Select Filter which will
-// only return services with the label specified.
+//基于标签的选择筛选器，返回具有指定标签的服务(比较registry.Service.Nodes.Metadata[key]val)
 func FilterLabel(key, val string) Filter {
 	return func(old []*registry.Service) []*registry.Service {
 		var services []*registry.Service
@@ -56,8 +54,7 @@ func FilterLabel(key, val string) Filter {
 	}
 }
 
-// FilterVersion is a version based Select Filter which will
-// only return services with the version specified.
+//基于版本的选择筛选器，返回指定版本的服务(比较registry.Service.Version)
 func FilterVersion(version string) Filter {
 	return func(old []*registry.Service) []*registry.Service {
 		var services []*registry.Service
